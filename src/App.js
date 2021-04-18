@@ -5,15 +5,13 @@ import "./App.css";
 import * as posenet from "@tensorflow-models/posenet";
 import Webcam from "react-webcam";
 import {  drawSkeleton } from "./utilities";
-import mountain from './download.jpg';
+import mountain from './pose3.jpg';
 
 function App() {
   const webcamRef = useRef(null);
-  const canvasRef = useRef();
-// const imageScaleFactor = 0.1;
-// const outputStride = 16;
-// const flipHorizontal = false;
-
+  const canvasRef = useRef(null);
+  const imgRef = useRef();
+  const canvasImg = useRef(null);
   //  Load posenet
   const runPosenet = async () => {
     const net = await posenet.load({
@@ -26,29 +24,34 @@ function App() {
       detect(net);
     }, 100);
   };
+  
+  const detectImg = async(net) => {
+      const image = imgRef.current;
+      console.log(imgRef.current.width);
+      const imageWidth = imgRef.current.width;
+      const imageHeight = imgRef.current.height;
 
-  const  detectImg = async (net) =>{
-    const image = document.getElementById('mountain');
-    const imgpose = await net.estimateSinglePose(image);
-    drawCanvasImg(imgpose, mountain, 640, 480, canvasRef)
-    console.log(image)
+      console.log(imageWidth);
+
+      imgRef.current.height = imageHeight;
+      imgRef.current.width = imageWidth;
+      const pose2 = await net.estimateSinglePose(image);
+      drawCanvasImg(pose2, image, imageWidth, imageHeight, canvasImg);
   }
 
-  const drawCanvasImg = (pose, image, ImgWidth, ImgHeight, canvas) => {
-    console.log(canvas);
+  const drawCanvasImg = (pose2, image, imageWidth, imageHeight, canvas) =>{
     const ctx = canvas.current.getContext("2d");
-    canvas.current.width = ImgWidth;
-    canvas.current.height = ImgHeight;
+    canvas.current.width = imageWidth;
+    canvas.current.height = imageHeight;
+    drawSkeleton(pose2["keypoints"], 0.7, ctx);
+    
+  }
 
-    drawSkeleton(pose["keypoints"], 0.7, ctx);
-  };
+  
 
   const detect = async (net) => {
     if (
-      typeof webcamRef.current !== "undefined" &&
-      webcamRef.current !== null &&
-      webcamRef.current.video.readyState === 4
-    ) {
+      typeof webcamRef.current !== "undefined" && webcamRef.current !== null && webcamRef.current.video.readyState === 4) {
       // Get Video Properties
       const video = webcamRef.current.video;
       const videoWidth = webcamRef.current.video.videoWidth;
@@ -60,7 +63,7 @@ function App() {
 
       // Make Detections
       const pose = await net.estimateSinglePose(video);
-      console.log(pose);
+      
 
       drawCanvas(pose, video, videoWidth, videoHeight, canvasRef);
     }
@@ -105,15 +108,28 @@ function App() {
             textAlign: "center",
             zindex: 9,
             width: 640,
-            height: 480,
+            height:480,
           }}
         />
-        <img id='mountain'
+        <canvas
+          ref={canvasImg}
+          style={{
+            position: "absolute",
+            marginLeft: "auto",
+            marginRight: "auto",
+            left: 0,
+            right: 0,
+            textAlign: "center",
+            zindex: 9,
+            width: 640,
+            height:480,
+          }}
+        />
+            
+        <img ref={imgRef}
         src={mountain} alt="Mountain"
-        style={{
-          width: 1280,
-          height: 720,
-        }} />
+        style={{position:"fixed"}}
+         />
       </header>      
     </div>
   );
